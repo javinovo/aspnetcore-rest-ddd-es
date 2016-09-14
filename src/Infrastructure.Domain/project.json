@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "debugType": "portable"
+  },
+  "dependencies": {
+    "EventStoreFacade": "1.0.0"        
+  },
+  "frameworks": {
+    "net461": {
+      "imports": "dnxcore50"
+    }
+  }
+}

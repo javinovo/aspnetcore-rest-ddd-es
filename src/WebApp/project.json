@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "debugType": "portable",
+    "emitEntryPoint": true
+  },
+  "dependencies": {
+    "Microsoft.AspNetCore.Server.Kestrel": "1.0.*",
+    "Microsoft.AspNetCore.Mvc": "1.0.*",
+    "Infrastructure.Domain": "1.0.0",
+    "ReadModel.Montajes": "1.0.0-*",
+    "BoundedContext.Montajes": "1.0.0-*",
+    "Microsoft.Extensions.Logging.Debug": "1.0.*"
+  },
+  "frameworks": {
+    "net461": {
+      "imports": "dnxcore50"
+    }
+  }
+}
