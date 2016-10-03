@@ -12,8 +12,17 @@
   },
   "testRunner": "xunit",
   "frameworks": {
-    "net461": {
-      "imports": "dnxcore50"
+    "netcoreapp1.0": {
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.0.1"
+        }
+      },
+      "imports": [
+        "dotnet5.4",
+        "portable-net451+win8"
+      ]
     }
   }
 }

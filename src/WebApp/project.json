@@ -10,10 +10,17 @@
     "Infrastructure.Domain": "1.0.0",
     "ReadModel.Montajes": "1.0.0-*",
     "BoundedContext.Montajes": "1.0.0-*",
-    "Microsoft.Extensions.Logging.Debug": "1.0.*"
+    "Microsoft.Extensions.Logging.Debug": "1.0.*",
+    "EventStoreFacade": "1.0.0-*"
   },
   "frameworks": {
-    "net461": {
+    "netcoreapp1.0": {
+      "dependencies": {
+        "Microsoft.NETCore.App": {
+          "type": "platform",
+          "version": "1.0.1"
+        }
+      },
       "imports": "dnxcore50"
     }
   }

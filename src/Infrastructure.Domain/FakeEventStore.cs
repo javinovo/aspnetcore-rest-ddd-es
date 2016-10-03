@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Infrastructure.Domain
 {
-    public class EventStore : IEventStore
+    public class FakeEventStore : IEventStore
     {
         private readonly IEventPublisher _publisher;
 
@@ -24,14 +24,14 @@ namespace Infrastructure.Domain
             }
         }
 
-        public EventStore(IEventPublisher publisher)
+        public FakeEventStore(IEventPublisher publisher)
         {
             _publisher = publisher;
         }
 
         private readonly Dictionary<Guid, List<EventDescriptor>> _current = new Dictionary<Guid, List<EventDescriptor>>();
 
-        public void SaveEvents(Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
+        public void SaveEvents(string aggregateType, Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
         {
             List<EventDescriptor> eventDescriptors;
 
@@ -66,7 +66,7 @@ namespace Infrastructure.Domain
 
         // collect all processed events for given aggregate and return them as a list
         // used to build up an aggregate from its history (Domain.LoadsFromHistory)
-        public List<Event> GetEventsForAggregate(Guid aggregateId)
+        public List<Event> GetEventsForAggregate(string aggregateType, Guid aggregateId)
         {
             List<EventDescriptor> eventDescriptors;
 

@@ -24,6 +24,5 @@ namespace BoundedContext.Montajes.CommandHandlers
             equipo.ActualizarNombre(message.NuevoNombre);
             _repository.Save(equipo, message.OriginalVersion);
         }
-
     }
 }

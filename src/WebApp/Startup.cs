@@ -48,8 +48,9 @@ namespace WebApp
         {
             var bus = ServiceLocator.Bus;
 
-            var repo = new Repository<BoundedContext.Montajes.Equipo>(                    
-                new Infrastructure.Domain.EventStore(bus));
+            var repo = new Repository<BoundedContext.Montajes.Equipo>(
+                new EventStoreFacade.EventStore(bus));
+                //new Infrastructure.Domain.FakeEventStore(bus));
 
             var cmdHandler = new BoundedContext.Montajes.CommandHandlers.EquipoCommandHandler(repo);
             bus.RegisterHandler<CrearEquipo>(cmdHandler.Handle);

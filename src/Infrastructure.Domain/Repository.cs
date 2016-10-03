@@ -14,13 +14,13 @@ namespace Infrastructure.Domain
 
         public void Save(AggregateRoot aggregate, int expectedVersion)
         {
-            _storage.SaveEvents(aggregate.Id, aggregate.GetUncommittedChanges(), expectedVersion);
+            _storage.SaveEvents(aggregate.GetType().FullName, aggregate.Id, aggregate.GetUncommittedChanges(), expectedVersion);
         }
 
         public T GetById(Guid id)
         {
             var obj = new T();//lots of ways to do this
-            var e = _storage.GetEventsForAggregate(id);
+            var e = _storage.GetEventsForAggregate(typeof(T).FullName, id);
             obj.LoadsFromHistory(e);
             return obj;
         }
