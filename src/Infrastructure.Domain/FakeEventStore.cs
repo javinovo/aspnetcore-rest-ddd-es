@@ -9,55 +9,35 @@ namespace Infrastructure.Domain
     {
         private readonly IEventPublisher _publisher;
 
-        private struct EventDescriptor
-        {
-
-            public readonly Event EventData;
-            public readonly Guid Id;
-            public readonly int Version;
-
-            public EventDescriptor(Guid id, Event eventData, int version)
-            {
-                EventData = eventData;
-                Version = version;
-                Id = id;
-            }
-        }
-
         public FakeEventStore(IEventPublisher publisher)
         {
             _publisher = publisher;
         }
 
-        private readonly Dictionary<Guid, List<EventDescriptor>> _current = new Dictionary<Guid, List<EventDescriptor>>();
+        private readonly Dictionary<Guid, List<Event>> _current = new Dictionary<Guid, List<Event>>();
 
         public void SaveEvents(string aggregateType, Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
         {
-            List<EventDescriptor> eventDescriptors;
+            List<Event> aggregateEvents;
 
             // try to get event descriptors list for given aggregate id
             // otherwise -> create empty dictionary
-            if (!_current.TryGetValue(aggregateId, out eventDescriptors))
+            if (!_current.TryGetValue(aggregateId, out aggregateEvents))
             {
-                eventDescriptors = new List<EventDescriptor>();
-                _current.Add(aggregateId, eventDescriptors);
+                aggregateEvents = new List<Event>();
+                _current.Add(aggregateId, aggregateEvents);
             }
             // check whether latest event version matches current aggregate version
             // otherwise -> throw exception
-            else if (eventDescriptors[eventDescriptors.Count - 1].Version != expectedVersion && expectedVersion != -1)
+            else if (aggregateEvents[aggregateEvents.Count - 1].Version != expectedVersion && expectedVersion != -1)
             {
                 throw new ConcurrencyException();
             }
-            var i = expectedVersion;
 
-            // iterate through current aggregate events increasing version with each processed event
             foreach (var @event in events)
             {
-                i++;
-                @event.Version = i;
-
-                // push event to the event descriptors list for current aggregate
-                eventDescriptors.Add(new EventDescriptor(aggregateId, @event, i));
+                // push event to the event list for current aggregate
+                aggregateEvents.Add(@event);
 
                 // publish current event to the bus for further processing by subscribers
                 _publisher.Publish(@event);
@@ -68,15 +48,20 @@ namespace Infrastructure.Domain
         // used to build up an aggregate from its history (Domain.LoadsFromHistory)
         public List<Event> GetEventsForAggregate(string aggregateType, Guid aggregateId)
         {
-            List<EventDescriptor> eventDescriptors;
+            List<Event> aggregateEvents;
 
-            if (!_current.TryGetValue(aggregateId, out eventDescriptors))
+            if (!_current.TryGetValue(aggregateId, out aggregateEvents))
             {
                 throw new AggregateNotFoundException();
             }
 
-            return eventDescriptors.Select(desc => desc.EventData).ToList();
+            return aggregateEvents.ToList();
         }
+
+        public List<T> GetEventsForType<T>(int startIndex, int maxCount) where T : Event =>
+            _current.Values.OfType<T>()
+                .Skip(startIndex).Take(maxCount)
+                .ToList();
     }
 
     public class AggregateNotFoundException : Exception

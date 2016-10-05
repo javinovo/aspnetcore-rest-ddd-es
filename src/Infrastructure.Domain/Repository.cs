@@ -1,9 +1,13 @@
 ﻿using Infrastructure.Domain.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Infrastructure.Domain
 {
-    public class Repository<T> : IRepository<T> where T : AggregateRoot, new() //shortcut you can do as you see fit with new()
+    public class Repository<T, TCreatedEvent> : IRepository<T, TCreatedEvent> 
+        where T : AggregateRoot, new() //shortcut you can do as you see fit with new()
+        where TCreatedEvent : Event
     {
         private readonly IEventStore _storage;
 
@@ -24,5 +28,8 @@ namespace Infrastructure.Domain
             obj.LoadsFromHistory(e);
             return obj;
         }
+
+        public IEnumerable<Guid> Enumerate(int startIndex, int maxCount)  =>
+            _storage.GetEventsForType<TCreatedEvent>(startIndex, maxCount).Select(x => x.SourceId);
     }
 }

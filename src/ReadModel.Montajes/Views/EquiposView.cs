@@ -10,13 +10,19 @@ namespace ReadModel.Montajes.Views
     {
         static Dictionary<Guid, EquipoDto> _dtos = new Dictionary<Guid, EquipoDto>();
 
+        public EquiposView(IEnumerable<EquipoDto> snapshot)
+        {
+            foreach (var dto in snapshot)
+                _dtos[dto.Id] = dto;
+        }
+
         public void Handle(EquipoCreado message) =>
-            _dtos[message.Id] = new EquipoDto(message.Id, message.Version, message.Nombre);
+            _dtos[message.SourceId] = new EquipoDto(message.SourceId, message.Version, message.Nombre);
 
         public void Handle(NombreEquipoActualizado message)
         {
-            _dtos[message.Id].Nombre = message.NuevoNombre;
-            _dtos[message.Id].Version = message.Version;
+            _dtos[message.SourceId].Nombre = message.NuevoNombre;
+            _dtos[message.SourceId].Version = message.Version;
         }
 
         // ToDo: ReadModelFacade?

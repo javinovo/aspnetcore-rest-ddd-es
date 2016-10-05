@@ -18,7 +18,7 @@ namespace BoundedContext.Montajes
         }
         void Apply(EquipoCreado e)
         {
-            _id = e.Id;
+            _id = e.SourceId;
             Nombre = e.Nombre;
         }
 

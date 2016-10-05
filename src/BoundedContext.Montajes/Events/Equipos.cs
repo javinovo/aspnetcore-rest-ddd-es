@@ -5,24 +5,20 @@ namespace BoundedContext.Montajes.Events
 {
     public class EquipoCreado : Event
     {
-        public readonly Guid Id;
         public readonly string Nombre;
 
-        public EquipoCreado(Guid id, string nombre)
+        public EquipoCreado(Guid id, string nombre) : base(id)
         {
-            Id = id;
             Nombre = nombre;
         }
     }
 
     public class NombreEquipoActualizado : Event
     {
-        public readonly Guid Id;
         public readonly string NuevoNombre;
 
-        public NombreEquipoActualizado(Guid id, string nuevoNombre)
+        public NombreEquipoActualizado(Guid id, string nuevoNombre) : base(id)
         {
-            Id = id;
             NuevoNombre = nuevoNombre;
         }
     }

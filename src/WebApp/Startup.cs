@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace WebApp
 {
@@ -48,15 +49,24 @@ namespace WebApp
         {
             var bus = ServiceLocator.Bus;
 
-            var repo = new Repository<BoundedContext.Montajes.Equipo>(
+            var repo = new BoundedContext.Montajes.EquiposRepository(
                 new EventStoreFacade.EventStore(bus));
-                //new Infrastructure.Domain.FakeEventStore(bus));
+                //new FakeEventStore(bus));
+
+            // Write models (Commands)
 
             var cmdHandler = new BoundedContext.Montajes.CommandHandlers.EquipoCommandHandler(repo);
             bus.RegisterHandler<CrearEquipo>(cmdHandler.Handle);
             bus.RegisterHandler<ActualizarNombreEquipo>(cmdHandler.Handle);
 
-            var equipoView = new ReadModel.Montajes.Views.EquiposView();
+            // Read models (Queries)
+
+            var snapshot = // Current data snapshot: we retrieve all the aggregates from the repository
+                repo.Enumerate(0, int.MaxValue).ToArray()
+                .Select(id => repo.GetById(id))
+                .Select(x => new ReadModel.Montajes.DTO.EquipoDto(x.Id, x.Version, x.Nombre));
+
+            var equipoView = new ReadModel.Montajes.Views.EquiposView(snapshot);
             bus.RegisterHandler<EquipoCreado>(equipoView.Handle);
             bus.RegisterHandler<NombreEquipoActualizado>(equipoView.Handle);
         }
