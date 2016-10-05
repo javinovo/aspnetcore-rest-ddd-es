@@ -2,6 +2,7 @@
 using Domain.Exceptions;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using ReadModel.Montajes.DTO;
 using ReadModel.Montajes.Views;
 using System;
@@ -33,12 +34,16 @@ namespace WebApp.Controllers
     {
         EquiposRepository _repository;
         ICommandSender _bus;
+        ILogger<EquipoMontaje> _logger;
 
-        public EquipoMontaje(ICommandSender bus, EquiposRepository repository)
+        public EquipoMontaje(ILogger<EquipoMontaje> logger, ICommandSender bus, EquiposRepository repository)
         {
+            _logger = logger;
             _bus = bus;
             _repository = repository;
         }
+
+        #region Actions
 
         [HttpGet]
         public IEnumerable<EquipoDto> GetAll() =>
@@ -48,20 +53,29 @@ namespace WebApp.Controllers
         public IActionResult GetById(Guid id)
         {
             if (id == Guid.Empty)
+            {
+                LogBadRequest(nameof(GetById));
                 return BadRequest();
+            }
 
             var item = EquiposView.Find(id);
             if (item == null)
+            {
+                LogNotFound(id, nameof(GetById));
                 return NotFound();
+            }
 
             return new ObjectResult(item);
         }
 
         [HttpGet("{id}/{version}")]
-        public IActionResult GetById(Guid id, int version)
+        public IActionResult GetByIdVersion(Guid id, int version)
         {
             if (id == Guid.Empty || version < 0)
+            {
+                LogBadRequest(nameof(GetByIdVersion));
                 return BadRequest();
+            }
 
             try
             {
@@ -70,6 +84,7 @@ namespace WebApp.Controllers
             }
             catch (AggregateNotFoundException)
             {
+                LogNotFound(id, nameof(GetByIdVersion));
                 return NotFound();
             }
         }
@@ -78,7 +93,10 @@ namespace WebApp.Controllers
         public IActionResult Crear(Guid id, [FromBody] CrearEquipo model)
         {
             if (model == null)
+            {
+                LogBadRequest(nameof(Crear));
                 return BadRequest();
+            }
 
             _bus.Send(new commands.CrearEquipo(id, model.Nombre));
 
@@ -89,11 +107,32 @@ namespace WebApp.Controllers
         public IActionResult ActualizarNombre(Guid id, [FromBody] ActualizarNombreEquipo model)
         {
             if (model == null)
+            {
+                LogBadRequest(nameof(ActualizarNombre));
                 return BadRequest();
+            }
 
             _bus.Send(new commands.ActualizarNombreEquipo(id, model.NuevoNombre, model.OriginalVersion));
 
             return CreatedAtRoute("GetEquipo", new { controller = "EquipoMontaje", id = id }, model);
         }
+
+        #endregion
+
+        #region Logging
+
+        void LogBadRequest(string action) =>
+            _logger.LogWarning(EventIds.BadRequest, "Bad Request at {Action}", action);
+
+        void LogNotFound(Guid id, string action) =>
+            _logger.LogWarning(EventIds.NotFound, "{Id} Not Found at {Action}", id, action);
+
+        static class EventIds
+        {
+            public const int BadRequest = 1;
+            public const int NotFound = 2;
+        }
+
+        #endregion
     }
 }

@@ -40,11 +40,13 @@ namespace WebApp
             services.AddSingleton<IEventPublisher>(_ => bus);
             services.AddSingleton<IMessageBroker>(_ => bus);
 
-            services.AddSingleton(serviceProvider =>                
-                new EquiposRepository(
-                    //new FakeEventStore(serviceProvider.GetService<IEventPublisher>())
-                    new EventStoreFacade.EventStore(serviceProvider.GetService<IEventPublisher>())
-            ));
+            services.AddSingleton<IEventStore>(serviceProvider =>
+                //new FakeEventStore(serviceProvider.GetService<IEventPublisher>()));
+                new EventStoreFacade.EventStore(
+                    serviceProvider.GetService<ILogger<EventStoreFacade.EventStore>>(),
+                    serviceProvider.GetService<IEventPublisher>()));
+            services.AddSingleton(serviceProvider =>
+                new EquiposRepository(serviceProvider.GetService<IEventStore>()));
         }
 	
 		public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory,
@@ -53,6 +55,8 @@ namespace WebApp
 #if DEBUG
             loggerFactory.AddDebug();
 #endif
+            loggerFactory.AddConsole();
+
             app.UseMvcWithDefaultRoute();
 
             ConfigureModels(messageBroker, repo);

@@ -3,6 +3,7 @@ using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,42 +12,37 @@ namespace EventStoreFacade
 {
     public class EventStore : IEventStore
     {
+        const int MaxPageSize = 4096; // EventStore.ClientAPI.Consts.MaxReadSize (internal)
         readonly ConnectionSettings Settings = ConnectionSettings.Create()           
             .KeepReconnecting().LimitAttemptsForOperationTo(60 * 60 / 3)
             .SetOperationTimeoutTo(TimeSpan.FromSeconds(3));
-        readonly IEventStoreConnection Connection = null;
-        readonly IEventPublisher _publisher;
-        const int MaxPageSize = 4096; // EventStore.ClientAPI.Consts.MaxReadSize (internal)
+        readonly IEventStoreConnection Connection = null;        
 
-        public EventStore(IEventPublisher publisher, string serverUri = "tcp://localhost:1113")
+        readonly IEventPublisher _publisher;
+
+        public EventStore(ILogger<EventStore> logger, IEventPublisher publisher, 
+            string serverUri = "tcp://localhost:1113")
         {
             _publisher = publisher;
 
             try
             {
                 Connection = EventStoreConnection.Create(Settings, new Uri(serverUri));
+
                 Connection.Disconnected += (s, e) =>
-                {
-                    //Serilog.Log.ForContext(typeof(EventStore))
-                    //    .Warning("Connection.Disconnected: {@Args}", e);
-                };
+                    logger.LogError("EventStore Disconnected");
+
                 Connection.Reconnecting += (s, e) =>
-                {
-                    //Serilog.Log.ForContext(typeof(EventStore))
-                    //    .Warning("Connection.Reconnecting: {@Args}", e);
-                };
+                    logger.LogError("EventStore Reconnecting");
+
                 Connection.ErrorOccurred += (s, e) =>
-                {
-                    //Serilog.Log.ForContext(typeof(EventStore))
-                    //    .Error(e.Exception, "Connection.ErrorOccurred: {@Args}");
-                };
+                    logger.LogError("EventStore ErrorOccurred");
 
                 Connection.ConnectAsync().Wait();
             }
             catch (Exception ex)
             {
-                //Serilog.Log.ForContext(typeof(EventStore))
-                //    .Error(ex, "Error reconnecting to EventStore at {ServerUri}", ServerUri);
+                logger.LogError(0, ex, "EventStore Exception");
             }
         }
 

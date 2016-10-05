@@ -6,10 +6,11 @@ Setup
 Edit `src\WebApp\Startup.cs` and pick the desired event store: `FakeEventStore` for in-memory or `EventStore` for [GES](https://geteventstore.com):
 
 ```
-services.AddSingleton(serviceProvider =>                
-  new EquiposRepository(                    
-    //new FakeEventStore(serviceProvider.GetService<IEventPublisher>())
-    new EventStoreFacade.EventStore(serviceProvider.GetService<IEventPublisher>())
+services.AddSingleton<IEventStore>(serviceProvider =>
+	//new FakeEventStore(serviceProvider.GetService<IEventPublisher>()));
+	new EventStoreFacade.EventStore(
+		serviceProvider.GetService<ILogger<EventStoreFacade.EventStore>>(),
+		serviceProvider.GetService<IEventPublisher>()));
 ```
 
 Run:
