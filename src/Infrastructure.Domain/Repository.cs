@@ -18,18 +18,23 @@ namespace Infrastructure.Domain
 
         public void Save(AggregateRoot aggregate, int expectedVersion)
         {
-            _storage.SaveEvents(aggregate.GetType().FullName, aggregate.Id, aggregate.GetUncommittedChanges(), expectedVersion);
+            _storage.SaveEvents<T>(aggregate.Id, aggregate.GetUncommittedChanges(), expectedVersion);
         }
 
-        public T GetById(Guid id)
+        public T Find(Guid id, int version = AggregateRoot.PreCreateVersion)
         {
             var obj = new T();//lots of ways to do this
-            var e = _storage.GetEventsForAggregate(typeof(T).FullName, id);
-            obj.LoadsFromHistory(e);
+            var events = _storage.GetEventsForAggregate<T>(id);
+
+            obj.LoadsFromHistory(
+                version == AggregateRoot.PreCreateVersion  
+                ? events
+                : events.Where(ev => ev.Version <= version));
+
             return obj;
         }
 
-        public IEnumerable<Guid> Enumerate(int startIndex, int maxCount)  =>
+        public IEnumerable<Guid> GetIds(int startIndex, int maxCount)  =>
             _storage.GetEventsForType<TCreatedEvent>(startIndex, maxCount).Select(x => x.SourceId);
     }
 }

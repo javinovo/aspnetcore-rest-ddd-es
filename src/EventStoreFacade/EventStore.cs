@@ -1,4 +1,5 @@
-﻿using EventStore.ClientAPI;
+﻿using Domain.Exceptions;
+using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
@@ -49,11 +50,12 @@ namespace EventStoreFacade
             }
         }
 
-        public void SaveEvents(string aggregateType, Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
+        public void SaveEvents<T>(Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
+            where T : AggregateRoot
         {
             try
             {
-                var result = Connection.AppendToStreamAsync(Utils.GetAggregateStreamName(aggregateType, aggregateId), expectedVersion,
+                var _ = Connection.AppendToStreamAsync(Utils.GetAggregateStreamName(typeof(T).FullName, aggregateId), expectedVersion,
                     events.Select(x => Utils.CreateEvent(x.GetType().FullName, x))).Result;
             }
             catch (AggregateException ae) when (ae.InnerException is WrongExpectedVersionException)
@@ -67,13 +69,20 @@ namespace EventStoreFacade
         }
 
 
-        public List<Event> GetEventsForAggregate(string aggregateType, Guid aggregateId) =>
-
-            ReadStream(Utils.GetAggregateStreamName(aggregateType, aggregateId))
+        public List<Event> GetEventsForAggregate<T>(Guid aggregateId) where T : AggregateRoot
+        {
+            var events = ReadStream(Utils.GetAggregateStreamName(typeof(T).FullName, aggregateId))
                 .Select(ev => Utils.FromJson(Utils.Encoding.GetString(ev.Event.Data), ev.Event.EventType))
                 .Cast<Event>().ToList();
 
-        public List<T> GetEventsForType<T>(int startIndex, int maxCount) where T : Event =>
+            if (events.Count == 0)
+                throw new AggregateNotFoundException();
+
+            return events;
+        }
+
+        public List<T> GetEventsForType<T>(int startIndex, int maxCount) 
+            where T : Event =>
 
             ReadStream(Utils.GetEventTypeStreamName(typeof(T).FullName))
                 .Select(ev => (T)Utils.FromJson(Utils.Encoding.GetString(ev.Event.Data), typeof(T)))

@@ -21,7 +21,7 @@ namespace BoundedContext.Montajes.CommandHandlers
 
         public void Handle(ActualizarNombreEquipo message)
         {
-            var equipo = _repository.GetById(message.EquipoId);
+            var equipo = _repository.Find(message.EquipoId);
             equipo.ActualizarNombre(message.NuevoNombre);
             _repository.Save(equipo, message.OriginalVersion);
         }

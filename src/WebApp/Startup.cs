@@ -1,5 +1,6 @@
 ﻿using BoundedContext.Montajes.Commands;
 using BoundedContext.Montajes.Events;
+using BoundedContext.Montajes.Repositories;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Builder;
@@ -27,48 +28,54 @@ namespace WebApp
 	{		
 		public void ConfigureServices(IServiceCollection services)
 		{
-			// Add framework services.
-			services.AddMvc();
+			// Add framework services
 
+			services.AddMvc();
 			services.AddLogging();
 
-            // Add our repository type
-            ConfigureBus();
-            services.AddSingleton<IBus, FakeBus>(_ => ServiceLocator.Bus);
-		}
+            // Add our bus and repository
+
+            var bus = new FakeBus();
+            services.AddSingleton<ICommandSender>(_ => bus);
+            services.AddSingleton<IEventPublisher>(_ => bus);
+            services.AddSingleton<IMessageBroker>(_ => bus);
+
+            services.AddSingleton(serviceProvider =>                
+                new EquiposRepository(
+                    //new FakeEventStore(serviceProvider.GetService<IEventPublisher>())
+                    new EventStoreFacade.EventStore(serviceProvider.GetService<IEventPublisher>())
+            ));
+        }
 	
-		public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
+		public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory,
+            IMessageBroker messageBroker, EquiposRepository repo)
 		{
 #if DEBUG
             loggerFactory.AddDebug();
 #endif
             app.UseMvcWithDefaultRoute();
+
+            ConfigureModels(messageBroker, repo);
 		}
 
-        void ConfigureBus()
+        void ConfigureModels(IMessageBroker messageBroker, EquiposRepository repo)
         {
-            var bus = ServiceLocator.Bus;
-
-            var repo = new BoundedContext.Montajes.EquiposRepository(
-                new EventStoreFacade.EventStore(bus));
-                //new FakeEventStore(bus));
-
             // Write models (Commands)
 
             var cmdHandler = new BoundedContext.Montajes.CommandHandlers.EquipoCommandHandler(repo);
-            bus.RegisterHandler<CrearEquipo>(cmdHandler.Handle);
-            bus.RegisterHandler<ActualizarNombreEquipo>(cmdHandler.Handle);
+            messageBroker.RegisterHandler<CrearEquipo>(cmdHandler.Handle);
+            messageBroker.RegisterHandler<ActualizarNombreEquipo>(cmdHandler.Handle);
 
             // Read models (Queries)
 
             var snapshot = // Current data snapshot: we retrieve all the aggregates from the repository
-                repo.Enumerate(0, int.MaxValue).ToArray()
-                .Select(id => repo.GetById(id))
-                .Select(x => new ReadModel.Montajes.DTO.EquipoDto(x.Id, x.Version, x.Nombre));
+                repo.GetIds(0, int.MaxValue).ToArray()
+                .Select(id => repo.Find(id))
+                .Select(x => new ReadModel.Montajes.DTO.EquipoDto(x));
 
             var equipoView = new ReadModel.Montajes.Views.EquiposView(snapshot);
-            bus.RegisterHandler<EquipoCreado>(equipoView.Handle);
-            bus.RegisterHandler<NombreEquipoActualizado>(equipoView.Handle);
+            messageBroker.RegisterHandler<EquipoCreado>(equipoView.Handle);
+            messageBroker.RegisterHandler<NombreEquipoActualizado>(equipoView.Handle);
         }
 	}
 }

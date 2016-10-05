@@ -14,5 +14,9 @@ namespace ReadModel.Montajes.DTO
             Version = version;
             Nombre = nombre;
         }
+
+        public EquipoDto(BoundedContext.Montajes.Equipo aggregate)
+            : this(aggregate.Id, aggregate.Version, aggregate.Nombre)
+        { }
     }
 }

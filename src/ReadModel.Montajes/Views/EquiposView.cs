@@ -28,6 +28,7 @@ namespace ReadModel.Montajes.Views
         // ToDo: ReadModelFacade?
         public static IEnumerable<EquipoDto> DTOs => _dtos.Values;
 
-        public static EquipoDto Find(Guid id) => _dtos[id];
+        public static EquipoDto Find(Guid id) =>
+            _dtos.ContainsKey(id) ? _dtos[id] : null;
     }
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Infrastructure.Domain
 {
-    public class FakeBus : IBus
+    public class FakeBus : IMessageBroker, ICommandSender, IEventPublisher
     {
         private readonly Dictionary<Type, List<Action<IMessage>>> _routes = new Dictionary<Type, List<Action<IMessage>>>();
 

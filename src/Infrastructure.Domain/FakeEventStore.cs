@@ -1,4 +1,5 @@
-﻿using Infrastructure.Domain.Interfaces;
+﻿using Domain.Exceptions;
+using Infrastructure.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +17,8 @@ namespace Infrastructure.Domain
 
         private readonly Dictionary<Guid, List<Event>> _current = new Dictionary<Guid, List<Event>>();
 
-        public void SaveEvents(string aggregateType, Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
+        public void SaveEvents<T>(Guid aggregateId, IEnumerable<Event> events, int expectedVersion)
+            where T : AggregateRoot
         {
             List<Event> aggregateEvents;
 
@@ -46,7 +48,7 @@ namespace Infrastructure.Domain
 
         // collect all processed events for given aggregate and return them as a list
         // used to build up an aggregate from its history (Domain.LoadsFromHistory)
-        public List<Event> GetEventsForAggregate(string aggregateType, Guid aggregateId)
+        public List<Event> GetEventsForAggregate<T>(Guid aggregateId) where T : AggregateRoot
         {
             List<Event> aggregateEvents;
 
@@ -62,13 +64,5 @@ namespace Infrastructure.Domain
             _current.Values.OfType<T>()
                 .Skip(startIndex).Take(maxCount)
                 .ToList();
-    }
-
-    public class AggregateNotFoundException : Exception
-    {
-    }
-
-    public class ConcurrencyException : Exception
-    {
     }
 }

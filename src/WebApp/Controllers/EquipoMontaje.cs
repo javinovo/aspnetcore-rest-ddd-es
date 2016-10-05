@@ -1,4 +1,6 @@
-﻿using Infrastructure.Domain;
+﻿using BoundedContext.Montajes.Repositories;
+using Domain.Exceptions;
+using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using ReadModel.Montajes.DTO;
 using ReadModel.Montajes.Views;
@@ -8,18 +10,20 @@ using WebApp.Models;
 using commands = BoundedContext.Montajes.Commands;
 
 /*
-curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -H "Postman-Token: 557f4036-3631-2e4a-8bf7-e9b98cc877cd" -d '{
+curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje"
+
+curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{
 	Nombre: "prueba"
-}' "http://localhost:5000/api/EquipoMontaje/4cfcb48c-3ae3-41a4-834a-2adc12b19ed9/"
+}' "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9"
 
-curl -X GET -H "Cache-Control: no-cache" -H "Postman-Token: 8350dc17-66ef-0338-fd98-f96e7764f633" "http://localhost:5000/api/EquipoMontaje/4cfcb48c-3ae3-41a4-834a-2adc12b19ed9"
-
-curl -X PUT -H "Content-Type: application/json" -H "Cache-Control: no-cache" -H "Postman-Token: 1b866399-a099-612b-3b44-c173d9baff59" -d '{
+curl -X PUT -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{
 	NuevoNombre: "actualizado!!",
 	OriginalVersion: 0
-}' "http://localhost:5000/api/EquipoMontaje/4cfcb48c-3ae3-41a4-834a-2adc12b19ed9/nombre"
+}' "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9/nombre"
 
-curl -X GET -H "Cache-Control: no-cache" -H "Postman-Token: 8350dc17-66ef-0338-fd98-f96e7764f633" "http://localhost:5000/api/EquipoMontaje/4cfcb48c-3ae3-41a4-834a-2adc12b19ed9"
+curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9"
+
+curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9/0"
  */
 
 namespace WebApp.Controllers
@@ -27,6 +31,15 @@ namespace WebApp.Controllers
     [Route("api/[controller]")]
     public class EquipoMontaje : Controller
     {
+        EquiposRepository _repository;
+        ICommandSender _bus;
+
+        public EquipoMontaje(ICommandSender bus, EquiposRepository repository)
+        {
+            _bus = bus;
+            _repository = repository;
+        }
+
         [HttpGet]
         public IEnumerable<EquipoDto> GetAll() =>
             EquiposView.DTOs;
@@ -44,13 +57,30 @@ namespace WebApp.Controllers
             return new ObjectResult(item);
         }
 
+        [HttpGet("{id}/{version}")]
+        public IActionResult GetById(Guid id, int version)
+        {
+            if (id == Guid.Empty || version < 0)
+                return BadRequest();
+
+            try
+            {
+                var equipo = _repository.Find(id, version);
+                return new ObjectResult(new EquipoDto(equipo));
+            }
+            catch (AggregateNotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
         [HttpPost("{id}")]
         public IActionResult Crear(Guid id, [FromBody] CrearEquipo model)
         {
             if (model == null)
                 return BadRequest();
 
-            ServiceLocator.Bus.Send(new commands.CrearEquipo(id, model.Nombre));
+            _bus.Send(new commands.CrearEquipo(id, model.Nombre));
 
             return CreatedAtRoute("GetEquipo", new { controller = "EquipoMontaje", id = id }, model);
         }
@@ -61,7 +91,7 @@ namespace WebApp.Controllers
             if (model == null)
                 return BadRequest();
 
-            ServiceLocator.Bus.Send(new commands.ActualizarNombreEquipo(id, model.NuevoNombre, model.OriginalVersion));
+            _bus.Send(new commands.ActualizarNombreEquipo(id, model.NuevoNombre, model.OriginalVersion));
 
             return CreatedAtRoute("GetEquipo", new { controller = "EquipoMontaje", id = id }, model);
         }

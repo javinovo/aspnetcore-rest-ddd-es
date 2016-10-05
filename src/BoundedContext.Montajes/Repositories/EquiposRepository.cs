@@ -2,7 +2,7 @@
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 
-namespace BoundedContext.Montajes
+namespace BoundedContext.Montajes.Repositories
 {
     // Just a convenience class to hide the concrete types
     public class EquiposRepository : Repository<Equipo, EquipoCreado>
