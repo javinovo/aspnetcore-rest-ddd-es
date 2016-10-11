@@ -4,6 +4,7 @@ using EventStore.ClientAPI.Exceptions;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,18 +17,17 @@ namespace EventStoreFacade
         readonly ConnectionSettings Settings = ConnectionSettings.Create()           
             .KeepReconnecting().LimitAttemptsForOperationTo(60 * 60 / 3)
             .SetOperationTimeoutTo(TimeSpan.FromSeconds(3));
-        readonly IEventStoreConnection Connection = null;        
-
+        readonly IEventStoreConnection Connection = null;
+        readonly string DefaultServerUri = "tcp://localhost:1113";
         readonly IEventPublisher _publisher;
 
-        public EventStore(ILogger<EventStore> logger, IEventPublisher publisher, 
-            string serverUri = "tcp://localhost:1113")
+        public EventStore(ILogger<EventStore> logger, IEventPublisher publisher, IOptions<EventStoreOptions> options)
         {
             _publisher = publisher;
 
             try
             {
-                Connection = EventStoreConnection.Create(Settings, new Uri(serverUri));
+                Connection = EventStoreConnection.Create(Settings, new Uri(options.Value.ServerUri ?? DefaultServerUri));
 
                 Connection.Disconnected += (s, e) =>
                     logger.LogError("EventStore Disconnected");

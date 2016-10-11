@@ -3,15 +3,17 @@
 Setup
 -----
 
-Edit `src\WebApp\Startup.cs` and pick the desired event store: `FakeEventStore` for in-memory or `EventStore` for [GES](https://geteventstore.com):
+Optionally configure a [GES EventStore](https://geteventstore.com) by creating a `appsettings.json` file in the output directory (ie. `src\WebApp\bin\Debug\netcoreapp1.0`):
 
 ```
-services.AddSingleton<IEventStore>(serviceProvider =>
-	//new FakeEventStore(serviceProvider.GetService<IEventPublisher>()));
-	new EventStoreFacade.EventStore(
-		serviceProvider.GetService<ILogger<EventStoreFacade.EventStore>>(),
-		serviceProvider.GetService<IEventPublisher>()));
+{
+	"EventStoreOptions": {
+		"ServerUri": "tcp://localhost:1113"
+	}
+}
 ```
+
+If no `ServerUri` is provided a fake in-memory EventStore is used.
 
 Run:
 

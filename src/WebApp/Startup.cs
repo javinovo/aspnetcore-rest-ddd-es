@@ -5,8 +5,10 @@ using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Linq;
 
 namespace WebApp
@@ -25,13 +27,28 @@ namespace WebApp
     }
 	
 	public class Startup
-	{		
+	{
+        IConfiguration _configuration;
+
+        public Startup(IHostingEnvironment env)
+        {
+            _configuration = new ConfigurationBuilder()
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+        }
+
 		public void ConfigureServices(IServiceCollection services)
 		{
 			// Add framework services
 
 			services.AddMvc();
 			services.AddLogging();
+
+            services.AddOptions();           
+            services.Configure<EventStoreFacade.EventStoreOptions>(_configuration.GetSection(nameof(EventStoreFacade.EventStoreOptions))); // Make IOptions<EventStoreFacade.EventStoreOptions> available through DI
 
             // Add our bus and repository
 
@@ -41,10 +58,18 @@ namespace WebApp
             services.AddSingleton<IMessageBroker>(_ => bus);
 
             services.AddSingleton<IEventStore>(serviceProvider =>
-                //new FakeEventStore(serviceProvider.GetService<IEventPublisher>()));
-                new EventStoreFacade.EventStore(
-                    serviceProvider.GetService<ILogger<EventStoreFacade.EventStore>>(),
-                    serviceProvider.GetService<IEventPublisher>()));
+            {
+                var eventStoreOptions = serviceProvider.GetService<IOptions<EventStoreFacade.EventStoreOptions>>();
+
+                // We fall back to an in-memory fake event store if the real one wasn't configured in appsettings.json
+                if (string.IsNullOrWhiteSpace(eventStoreOptions.Value.ServerUri))
+                    return new FakeEventStore(serviceProvider.GetService<IEventPublisher>());
+                else
+                    return new EventStoreFacade.EventStore(
+                        serviceProvider.GetService<ILogger<EventStoreFacade.EventStore>>(),
+                        serviceProvider.GetService<IEventPublisher>(),
+                        eventStoreOptions);
+            });
             services.AddSingleton(serviceProvider =>
                 new EquiposRepository(serviceProvider.GetService<IEventStore>()));
         }
