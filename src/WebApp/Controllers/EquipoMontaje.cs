@@ -53,17 +53,11 @@ namespace WebApp.Controllers
         public IActionResult GetById(Guid id)
         {
             if (id == Guid.Empty)
-            {
-                LogBadRequest(nameof(GetById));
                 return BadRequest();
-            }
 
             var item = EquiposView.Find(id);
             if (item == null)
-            {
-                LogNotFound(id, nameof(GetById));
-                return NotFound();
-            }
+                return NotFound(id);
 
             return new ObjectResult(item);
         }
@@ -72,10 +66,7 @@ namespace WebApp.Controllers
         public IActionResult GetByIdVersion(Guid id, int version)
         {
             if (id == Guid.Empty || version < 0)
-            {
-                LogBadRequest(nameof(GetByIdVersion));
                 return BadRequest();
-            }
 
             try
             {
@@ -84,8 +75,7 @@ namespace WebApp.Controllers
             }
             catch (AggregateNotFoundException)
             {
-                LogNotFound(id, nameof(GetByIdVersion));
-                return NotFound();
+                return NotFound(id);
             }
         }
 
@@ -93,10 +83,7 @@ namespace WebApp.Controllers
         public IActionResult Crear(Guid id, [FromBody] CrearEquipo model)
         {
             if (model == null)
-            {
-                LogBadRequest(nameof(Crear));
                 return BadRequest();
-            }
 
             _bus.Send(new commands.CrearEquipo(id, model.Nombre));
 
@@ -107,10 +94,7 @@ namespace WebApp.Controllers
         public IActionResult ActualizarNombre(Guid id, [FromBody] ActualizarNombreEquipo model)
         {
             if (model == null)
-            {
-                LogBadRequest(nameof(ActualizarNombre));
                 return BadRequest();
-            }
 
             _bus.Send(new commands.ActualizarNombreEquipo(id, model.NuevoNombre, model.OriginalVersion));
 
@@ -121,11 +105,17 @@ namespace WebApp.Controllers
 
         #region Logging
 
-        void LogBadRequest(string action) =>
-            _logger.LogWarning(EventIds.BadRequest, "Bad Request at {Action}", action);
+        public override BadRequestResult BadRequest()
+        {
+            _logger.LogWarning(EventIds.BadRequest, "Bad Request at {Action}", ControllerContext.ActionDescriptor.ActionName);
+            return base.BadRequest();
+        }
 
-        void LogNotFound(Guid id, string action) =>
-            _logger.LogWarning(EventIds.NotFound, "{Id} Not Found at {Action}", id, action);
+        public override NotFoundObjectResult NotFound(object id)
+        {
+            _logger.LogWarning(EventIds.NotFound, "{Id} Not Found at {Action}", id, ControllerContext.ActionDescriptor.ActionName);
+            return base.NotFound(id);
+        }
 
         static class EventIds
         {
