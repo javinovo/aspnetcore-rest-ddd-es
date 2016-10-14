@@ -38,6 +38,9 @@ namespace WebApp
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
+
+            // ToDo: improve this
+            EventStoreFacade.Utils.TypesDirectory = new System.IO.DirectoryInfo(env.ContentRootPath);
         }
 
 		public void ConfigureServices(IServiceCollection services)

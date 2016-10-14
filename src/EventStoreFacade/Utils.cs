@@ -10,6 +10,8 @@ namespace EventStoreFacade
 {
     public static class Utils
     {
+        public static System.IO.DirectoryInfo TypesDirectory;
+
         public static readonly Encoding Encoding = Encoding.UTF8;
         public static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
         {
@@ -42,11 +44,14 @@ namespace EventStoreFacade
             {
                 var namespaceStart = typeFullName.Split('.').First();
 
-                var types =
-                    (from lib in Microsoft.Extensions.DependencyModel.DependencyContext.Default.RuntimeLibraries
-                     where lib.Name.StartsWith(namespaceStart)
-                     select System.Reflection.Assembly.Load(new System.Reflection.AssemblyName(lib.Name)))
-                     .SelectMany(x => x.ExportedTypes);
+                var types = TypesDirectory.EnumerateFiles($"{namespaceStart}*.dll").SelectMany(fi =>
+                    System.Runtime.Loader.AssemblyLoadContext.Default.LoadFromAssemblyPath(fi.FullName).ExportedTypes);
+
+                //var types =
+                //    (from lib in Microsoft.Extensions.DependencyModel.DependencyContext.Default.RuntimeLibraries
+                //     where lib.Name.StartsWith(namespaceStart)
+                //     select Assembly.Load(new AssemblyName(lib.Name)))
+                //     .SelectMany(x => x.ExportedTypes);
 
                 type = types.Single(t => t.FullName.Equals(typeFullName, StringComparison.OrdinalIgnoreCase));
             }
