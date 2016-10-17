@@ -8,13 +8,28 @@ namespace ReadModel.Montajes.Views
 {
     public class EquiposView : IHandle<EquipoCreado>, IHandle<NombreEquipoActualizado>
     {
-        static Dictionary<Guid, EquipoDto> _dtos = new Dictionary<Guid, EquipoDto>();
+        readonly Dictionary<Guid, EquipoDto> _dtos = new Dictionary<Guid, EquipoDto>();
 
-        public EquiposView(IEnumerable<EquipoDto> snapshot)
+        public EquiposView(IMessageBroker messageBroker)
         {
+            messageBroker.RegisterHandler<EquipoCreado>(Handle);
+            messageBroker.RegisterHandler<NombreEquipoActualizado>(Handle);
+        }
+
+        public void LoadSnapshot(IEnumerable<EquipoDto> snapshot)
+        {
+            _dtos.Clear();
             foreach (var dto in snapshot)
                 _dtos[dto.Id] = dto;
         }
+
+        // ToDo: ReadModelFacade?
+        public IEnumerable<EquipoDto> FindAll() => _dtos.Values;
+
+        public EquipoDto Find(Guid id) =>
+            _dtos.ContainsKey(id) ? _dtos[id] : null;
+
+        #region Event handlers
 
         public void Handle(EquipoCreado message) =>
             _dtos[message.SourceId] = new EquipoDto(message.SourceId, message.Version, message.Nombre);
@@ -25,10 +40,6 @@ namespace ReadModel.Montajes.Views
             _dtos[message.SourceId].Version = message.Version;
         }
 
-        // ToDo: ReadModelFacade?
-        public static IEnumerable<EquipoDto> DTOs => _dtos.Values;
-
-        public static EquipoDto Find(Guid id) =>
-            _dtos.ContainsKey(id) ? _dtos[id] : null;
+        #endregion
     }
 }

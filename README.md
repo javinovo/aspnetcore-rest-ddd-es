@@ -13,6 +13,8 @@ Optionally configure a [GES EventStore](https://geteventstore.com) by creating a
 }
 ```
 
+Event type projections (`$et-` streams) are used so [projections must be enabled](http://docs.geteventstore.com/introduction/latest/setup_projections/).
+
 If no `ServerUri` is provided a fake in-memory EventStore is used. This can be tried by omitting the `appsettings.json` file altogether or simply commenting the `ServerUri` line by prepending `//` to it.
 
 Run:

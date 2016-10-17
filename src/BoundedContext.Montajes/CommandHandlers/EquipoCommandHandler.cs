@@ -4,13 +4,19 @@ using Infrastructure.Domain.Interfaces;
 
 namespace BoundedContext.Montajes.CommandHandlers
 {
+    /// <summary>
+    /// Application service in charge of processing the commands. Contains the infrastructure needed to execute the commands (ie. the repository)
+    /// </summary>
     public class EquipoCommandHandler : IHandle<CrearEquipo>, IHandle<ActualizarNombreEquipo>
     {
         readonly IRepository<Equipo, Events.EquipoCreado> _repository;
 
-        public EquipoCommandHandler(IRepository<Equipo, Events.EquipoCreado> repository)
+        public EquipoCommandHandler(IMessageBroker messageBroker, IRepository<Equipo, Events.EquipoCreado> repository)
         {
             _repository = repository;
+
+            messageBroker.RegisterHandler<CrearEquipo>(Handle);
+            messageBroker.RegisterHandler<ActualizarNombreEquipo>(Handle);
         }
 
         public void Handle(CrearEquipo message)

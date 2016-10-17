@@ -6,7 +6,7 @@ namespace Infrastructure.Domain
 {
     public class FakeBus : IMessageBroker, ICommandSender, IEventPublisher
     {
-        private readonly Dictionary<Type, List<Action<IMessage>>> _routes = new Dictionary<Type, List<Action<IMessage>>>();
+        readonly Dictionary<Type, List<Action<IMessage>>> _routes = new Dictionary<Type, List<Action<IMessage>>>();
 
         public void RegisterHandler<T>(Action<T> handler) where T : IMessage
         {
@@ -31,9 +31,7 @@ namespace Infrastructure.Domain
                 handlers[0](command);
             }
             else
-            {
                 throw new InvalidOperationException("no handler registered");
-            }
         }
 
         public void Publish<T>(T @event) where T : Event

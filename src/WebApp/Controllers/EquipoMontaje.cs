@@ -29,25 +29,30 @@ curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaj
 
 namespace WebApp.Controllers
 {
+    /// <summary>
+    /// Facade exposed as a REST API which translates to queries and commands
+    /// </summary>
     [Route("api/[controller]")]
     public class EquipoMontaje : Controller
     {
-        EquiposRepository _repository;
         ICommandSender _bus;
         ILogger<EquipoMontaje> _logger;
+        EquiposView _readModelView;
+        EquiposRepository _writeModelRepository;
 
-        public EquipoMontaje(ILogger<EquipoMontaje> logger, ICommandSender bus, EquiposRepository repository)
+        public EquipoMontaje(ILogger<EquipoMontaje> logger, ICommandSender bus, EquiposRepository repository, EquiposView view)
         {
             _logger = logger;
             _bus = bus;
-            _repository = repository;
+            _writeModelRepository = repository;
+            _readModelView = view;
         }
 
         #region Actions
 
         [HttpGet]
         public IEnumerable<EquipoDto> GetAll() =>
-            EquiposView.DTOs;
+            _readModelView.FindAll();
 
         [HttpGet("{id}", Name = "GetEquipo")]
         public IActionResult GetById(Guid id)
@@ -55,7 +60,7 @@ namespace WebApp.Controllers
             if (id == Guid.Empty)
                 return BadRequest();
 
-            var item = EquiposView.Find(id);
+            var item = _readModelView.Find(id);
             if (item == null)
                 return NotFound(id);
 
@@ -70,7 +75,7 @@ namespace WebApp.Controllers
 
             try
             {
-                var equipo = _repository.Find(id, version);
+                var equipo = _writeModelRepository.Find(id, version);
                 return new ObjectResult(new EquipoDto(equipo));
             }
             catch (AggregateNotFoundException)

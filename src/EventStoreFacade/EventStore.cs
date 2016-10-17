@@ -1,6 +1,7 @@
 ﻿using Domain.Exceptions;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Exceptions;
+using EventStoreFacade.Serialization;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -13,17 +14,27 @@ namespace EventStoreFacade
 {
     public class EventStore : IEventStore
     {
-        const int MaxPageSize = 4096; // EventStore.ClientAPI.Consts.MaxReadSize (internal)
+        const string DefaultEventAssembliesPrefix = "BoundedContext.";
+        const string DefaultServerUri = "tcp://localhost:1113";
+        const int MaxPageSize = 4096; // EventStore.ClientAPI.Consts.MaxReadSize (has internal visibility so we copy the value)
+
         readonly ConnectionSettings Settings = ConnectionSettings.Create()           
             .KeepReconnecting().LimitAttemptsForOperationTo(60 * 60 / 3)
             .SetOperationTimeoutTo(TimeSpan.FromSeconds(3));
         readonly IEventStoreConnection Connection = null;
-        readonly string DefaultServerUri = "tcp://localhost:1113";
+
         readonly IEventPublisher _publisher;
+        readonly EventSerializer _eventSerializer;
+            
 
         public EventStore(ILogger<EventStore> logger, IEventPublisher publisher, IOptions<EventStoreOptions> options)
         {
             _publisher = publisher;
+
+            var assemblyNameFilter = options.Value.EventAssembliesPrefix ?? DefaultEventAssembliesPrefix;
+            _eventSerializer = new EventSerializer(
+                new DependencyContextFinder(assemblyNameFilter)); // Preferred since it doesn't require a path but will be incompatible with .NET Standard 2.0
+                //new RuntimeLoaderFinder(new System.IO.DirectoryInfo(@".\bin\Debug\netcoreapp1.0"), assemblyNameFilter));
 
             try
             {
@@ -51,8 +62,8 @@ namespace EventStoreFacade
         {
             try
             {
-                var _ = Connection.AppendToStreamAsync(Utils.GetAggregateStreamName(typeof(T).FullName, aggregateId), expectedVersion,
-                    events.Select(x => Utils.CreateEvent(x.GetType().FullName, x))).Result;
+                var _ = Connection.AppendToStreamAsync(GetAggregateStreamName(typeof(T).FullName, aggregateId), expectedVersion,
+                    events.Select(x => _eventSerializer.CreateEvent(x.GetType().FullName, x))).Result;
             }
             catch (AggregateException ae) when (ae.InnerException is WrongExpectedVersionException)
             {
@@ -67,8 +78,8 @@ namespace EventStoreFacade
 
         public List<Event> GetEventsForAggregate<T>(Guid aggregateId) where T : AggregateRoot
         {
-            var events = ReadStream(Utils.GetAggregateStreamName(typeof(T).FullName, aggregateId))
-                .Select(ev => Utils.FromJson(Utils.Encoding.GetString(ev.Event.Data), ev.Event.EventType))
+            var events = ReadStream(GetAggregateStreamName(typeof(T).FullName, aggregateId))
+                .Select(ev => _eventSerializer.FromData(ev.Event.Data, ev.Event.EventType))
                 .Cast<Event>().ToList();
 
             if (events.Count == 0)
@@ -80,8 +91,8 @@ namespace EventStoreFacade
         public List<T> GetEventsForType<T>(int startIndex, int maxCount) 
             where T : Event =>
 
-            ReadStream(Utils.GetEventTypeStreamName(typeof(T).FullName))
-                .Select(ev => (T)Utils.FromJson(Utils.Encoding.GetString(ev.Event.Data), typeof(T)))
+            ReadStream(GetEventTypeStreamName(typeof(T).FullName))
+                .Select(ev => _eventSerializer.FromData<T>(ev.Event.Data))
                 .Skip(startIndex).Take(maxCount)
                 .ToList();
 
@@ -102,5 +113,19 @@ namespace EventStoreFacade
 
             return streamEvents;
         }
+
+        #region Stream mapping
+
+        /// <summary>
+        /// Stream containing all the events of a given type (requires built-in projections enabled)
+        /// </summary>
+        static string GetEventTypeStreamName(string eventName) => $"$et-{eventName}";
+
+        /// <summary>
+        /// Stream containing all the events of a given aggregate instance
+        /// </summary>
+        static string GetAggregateStreamName(string aggregateName, Guid aggregateId) => $"{aggregateName}-{aggregateId}";
+
+        #endregion
     }
 }
