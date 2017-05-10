@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Halcyon.Web.HAL.Json;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.PlatformAbstractions;
 
 namespace WebApp
 {
@@ -35,7 +37,9 @@ namespace WebApp
 		public void ConfigureServices(IServiceCollection services)
 		{
             // Add framework services
-            services.AddMvc()
+            services.AddMvc(options =>                    
+                    options.OutputFormatters.Add(new JsonHalOutputFormatter(
+                        new[] { "application/hal+json", "application/vnd.example.hal+json", "application/vnd.example.hal.v1+json" })))
                 .AddJsonOptions(options =>
                 {                    
                     if (_environment.IsDevelopment())
@@ -44,8 +48,9 @@ namespace WebApp
                 });
             services.AddLogging();
 
-            // Inject an implementation of ISwaggerProvider with defaulted settings applied
-            services.AddSwaggerGen();
+            // Inject an implementation of ISwaggerProvider, enabling the inclusion XML comments
+            services.AddSwaggerGen(options =>
+                options.IncludeXmlComments(GetXmlCommentsFilePath()));
 
             services.AddOptions()
                 .Configure<EventStoreFacade.EventStoreOptions>(_configuration.GetSection(nameof(EventStoreFacade.EventStoreOptions))); // Make IOptions<EventStoreFacade.EventStoreOptions> available through DI
@@ -63,14 +68,19 @@ namespace WebApp
             loggerFactory.AddConsole();
 
             app.UseMvcWithDefaultRoute();
+            if (_environment.IsDevelopment())
+                app.UseDeveloperExceptionPage();
 
-            // Enable middleware to serve generated Swagger as a JSON endpoint
-            app.UseSwagger();
-
-            // Enable middleware to serve swagger-ui assets (HTML, JS, CSS etc.)
-            app.UseSwaggerUi();
+            app.UseSwagger();   // Enable middleware to serve generated Swagger as a JSON endpoint
+            app.UseSwaggerUi(); // Enable middleware to serve swagger-ui assets (HTML, JS, CSS etc.)
 
             app.ConfigureModels(repo, view);
 		}
-	}
+
+        string GetXmlCommentsFilePath()
+        {
+            var app = PlatformServices.Default.Application;
+            return System.IO.Path.Combine(app.ApplicationBasePath, System.IO.Path.ChangeExtension(app.ApplicationName, "xml"));
+        }
+    }
 }

@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using WebApp.Models;
 using commands = BoundedContext.Montajes.Commands;
+using Halcyon.HAL;
+using Halcyon.Web.HAL;
 
 /*
 curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje"
@@ -50,6 +52,10 @@ namespace WebApp.Controllers
 
         #region Actions
 
+        /// <summary>
+        /// Get all the equipos
+        /// </summary>
+        /// <returns>All the equipos</returns>
         [HttpGet]
         public IEnumerable<EquipoDto> GetAll() =>
             _readModelView.FindAll();
@@ -64,7 +70,8 @@ namespace WebApp.Controllers
             if (item == null)
                 return NotFound(id);
 
-            return new ObjectResult(item);
+            return this.HAL(item, new Link[] { new Link(Link.RelForSelf, "/api/{id}") });
+            //return new ObjectResult(item);
         }
 
         [HttpGet("{id}/{version}")]
