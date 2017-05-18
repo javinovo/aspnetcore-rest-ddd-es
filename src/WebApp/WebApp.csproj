@@ -2,14 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp1.0</TargetFramework>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-    <DebugType>portable</DebugType>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DebugType>portable</DebugType>    
     <AssemblyName>WebApp</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>WebApp</PackageId>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
+    <!--Generate XML comments and disable related warnings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>    
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,5 +32,13 @@
     <PackageReference Include="Swashbuckle" Version="6.0.0-beta902" />
     <PackageReference Include="Halcyon.Mvc" Version="2.3.0" />
   </ItemGroup>
+
+  <!-- Include documentation files required by Swagger: https://github.com/dotnet/sdk/issues/795 -->
+  <Target Name="CopyDocumentationFile" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(FinalDocFile)" 
+                             RelativePath="@(FinalDocFile->'%(FileName)%(Extension)')" />
+    </ItemGroup>
+  </Target>
 
 </Project>
