@@ -1,8 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>netcoreapp1.0</TargetFramework>
-    <DebugType>portable</DebugType>    
+    <DebugType>portable</DebugType>
     <AssemblyName>WebApp</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>WebApp</PackageId>
@@ -10,16 +9,14 @@
     <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
     <!--Generate XML comments and disable related warnings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>    
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure.Domain\Infrastructure.Domain.csproj" />
     <ProjectReference Include="..\ReadModel.Montajes\ReadModel.Montajes.csproj" />
     <ProjectReference Include="..\BoundedContext.Montajes\BoundedContext.Montajes.csproj" />
     <ProjectReference Include="..\EventStoreFacade\EventStoreFacade.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="1.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="1.0.3" />
@@ -28,17 +25,15 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="1.0.2" />
     <PackageReference Include="Swashbuckle" Version="6.0.0-beta902" />
     <PackageReference Include="Halcyon.Mvc" Version="2.3.0" />
   </ItemGroup>
-
   <!-- Include documentation files required by Swagger: https://github.com/dotnet/sdk/issues/795 -->
   <Target Name="CopyDocumentationFile" AfterTargets="ComputeFilesToPublish">
     <ItemGroup>
-      <ResolvedFileToPublish Include="@(FinalDocFile)" 
-                             RelativePath="@(FinalDocFile->'%(FileName)%(Extension)')" />
+      <ResolvedFileToPublish Include="@(FinalDocFile)" RelativePath="@(FinalDocFile->'%(FileName)%(Extension)')" />
     </ItemGroup>
   </Target>
-
 </Project>

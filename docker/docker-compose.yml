@@ -1,0 +1,15 @@
+version: '3'
+services:
+  eventstore:
+    image: "eventstore/eventstore"
+    ports:
+    - "1113:1113"
+    - "2113:2113"
+  web:
+    build: .
+    ports:
+     - "5000:80"
+    depends_on:
+     - eventstore
+    environment:
+     - EventStoreOptions:ServerUri=tcp://admin:changeit@eventstore:1113

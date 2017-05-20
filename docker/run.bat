@@ -1,1 +1,1 @@
-docker run -d -p 8000:80 webapp 
+docker run -it -p 5000:80 webapp 

@@ -10,12 +10,18 @@ namespace WebApp
 {
     public class Program
     {
-        public static void Main(string[] args) =>
+        public static string[] CommandLineArguments;
+        
+        public static void Main(string[] args)
+        {
+            CommandLineArguments = args;
+
             new WebHostBuilder()            
                 .UseKestrel()
                 .UseStartup<Startup>()
                 .Build()
                 .Run();
+        }
     }
 	
 	public class Startup
@@ -31,6 +37,7 @@ namespace WebApp
                 .AddJsonFile("appsettings.json", optional: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables()
+                .AddCommandLine(Program.CommandLineArguments)
                 .Build();
         }
 

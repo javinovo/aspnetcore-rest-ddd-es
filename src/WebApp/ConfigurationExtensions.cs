@@ -27,16 +27,27 @@ namespace WebApp
 
             services.AddSingleton<IEventStore>(serviceProvider =>
             {
+                var logger = serviceProvider.GetService<ILogger>();
+                var eventPublisher = serviceProvider.GetService<IEventPublisher>();
+
                 var eventStoreOptions = serviceProvider.GetService<IOptions<EventStoreFacade.EventStoreOptions>>();
 
                 // We fall back to an in-memory fake event store if the real one wasn't configured in appsettings.json
                 if (string.IsNullOrWhiteSpace(eventStoreOptions.Value.ServerUri))
-                    return new FakeEventStore(serviceProvider.GetService<IEventPublisher>());
+                {
+                    logger.LogInformation($"EventStore not configured, reverting to in-memory fake event store");
+                    
+                    return new FakeEventStore(eventPublisher);
+                }
                 else
+                {
+                    logger.LogInformation($"EventStore configured at: {eventStoreOptions.Value.ServerUri}");
+
                     return new EventStoreFacade.EventStore(
                         serviceProvider.GetService<ILogger<EventStoreFacade.EventStore>>(),
-                        serviceProvider.GetService<IEventPublisher>(),
+                        eventPublisher,
                         eventStoreOptions);
+                }
             });
 
             services.AddSingleton(serviceProvider =>
