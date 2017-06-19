@@ -13,8 +13,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure.Domain\Infrastructure.Domain.csproj" />
-    <ProjectReference Include="..\ReadModel.Montajes\ReadModel.Montajes.csproj" />
-    <ProjectReference Include="..\BoundedContext.Montajes\BoundedContext.Montajes.csproj" />
+    <ProjectReference Include="..\ReadModel.Teams\ReadModel.Teams.csproj" />
+    <ProjectReference Include="..\BoundedContext.Teams\BoundedContext.Teams.csproj" />
     <ProjectReference Include="..\EventStoreFacade\EventStoreFacade.csproj" />
   </ItemGroup>
   <ItemGroup>

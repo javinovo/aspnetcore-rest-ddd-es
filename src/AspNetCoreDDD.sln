@@ -9,9 +9,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure.Domain", "In
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStoreFacade", "EventStoreFacade\EventStoreFacade.csproj", "{D58452D8-811E-4760-8309-00F7A53C83E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BoundedContext.Montajes", "BoundedContext.Montajes\BoundedContext.Montajes.csproj", "{DE0C3A96-F9E6-4D4E-B227-0066559830CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BoundedContext.Teams", "BoundedContext.Teams\BoundedContext.Teams.csproj", "{DE0C3A96-F9E6-4D4E-B227-0066559830CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadModel.Montajes", "ReadModel.Montajes\ReadModel.Montajes.csproj", "{BDC6903D-3BB4-4EB2-AD4A-B4F527C668E2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadModel.Teams", "ReadModel.Teams\ReadModel.Teams.csproj", "{BDC6903D-3BB4-4EB2-AD4A-B4F527C668E2}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Writes", "Writes", "{031B07E6-1BE2-4BF2-A18B-A3C9DBA752C4}"
 EndProject

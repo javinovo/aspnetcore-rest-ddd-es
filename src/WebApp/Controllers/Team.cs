@@ -1,32 +1,32 @@
-﻿using BoundedContext.Montajes.Repositories;
+﻿using BoundedContext.Teams.Repositories;
 using Domain.Exceptions;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using ReadModel.Montajes.DTO;
-using ReadModel.Montajes.Views;
+using ReadModel.Teams.DTO;
+using ReadModel.Teams.Views;
 using System;
 using System.Collections.Generic;
 using WebApp.Models;
-using commands = BoundedContext.Montajes.Commands;
+using commands = BoundedContext.Teams.Commands;
 using Halcyon.HAL;
 using Halcyon.Web.HAL;
 
 /*
-curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje"
+curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team"
 
 curl -X POST -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{
-	Nombre: "prueba"
-}' "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9"
+	Name: "test"
+}' "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9"
 
 curl -X PUT -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{
-	NuevoNombre: "actualizado!!",
+	NewName: "updated!!",
 	OriginalVersion: 0
-}' "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9/nombre"
+}' "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9/name"
 
-curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9"
+curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9"
 
-curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/EquipoMontaje/63931ea8-3f83-487c-8f21-01577a5157f9/0"
+curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9/0"
  */
 
 namespace WebApp.Controllers
@@ -35,14 +35,14 @@ namespace WebApp.Controllers
     /// Facade exposed as a REST API which translates to queries and commands
     /// </summary>
     [Route("api/[controller]")]
-    public class EquipoMontaje : Controller
+    public class Team : Controller
     {
         ICommandSender _bus;
-        ILogger<EquipoMontaje> _logger;
-        EquiposView _readModelView;
-        EquiposRepository _writeModelRepository;
+        ILogger<Team> _logger;
+        TeamsView _readModelView;
+        TeamRepository _writeModelRepository;
 
-        public EquipoMontaje(ILogger<EquipoMontaje> logger, ICommandSender bus, EquiposRepository repository, EquiposView view)
+        public Team(ILogger<Team> logger, ICommandSender bus, TeamRepository repository, TeamsView view)
         {
             _logger = logger;
             _bus = bus;
@@ -53,14 +53,18 @@ namespace WebApp.Controllers
         #region Actions
 
         /// <summary>
-        /// Get all the equipos
+        /// Get all teams.
         /// </summary>
-        /// <returns>All the equipos</returns>
+        /// <returns>All the teams</returns>
         [HttpGet]
-        public IEnumerable<EquipoDto> GetAll() =>
+        public IEnumerable<TeamDto> GetAll() =>
             _readModelView.FindAll();
 
-        [HttpGet("{id}", Name = "GetEquipo")]
+        /// <summary>
+        /// Obtains a specific team from the read model. It should be the up to date version but it might not be.
+        /// </summary>
+        /// <returns>The team as currently stored in the read model or 404</returns>
+        [HttpGet("{id}", Name = "GetTeam")]
         public IActionResult GetById(Guid id)
         {
             if (id == Guid.Empty)
@@ -74,6 +78,10 @@ namespace WebApp.Controllers
             //return new ObjectResult(item);
         }
 
+        /// <summary>
+        /// Obtains a team in a specific version by replaying all its events up to that version.
+        /// </summary>
+        /// <returns>The specified version of the team or 404</returns>
         [HttpGet("{id}/{version}")]
         public IActionResult GetByIdVersion(Guid id, int version)
         {
@@ -82,8 +90,8 @@ namespace WebApp.Controllers
 
             try
             {
-                var equipo = _writeModelRepository.Find(id, version);
-                return new ObjectResult(new EquipoDto(equipo));
+                var team = _writeModelRepository.Find(id, version);
+                return new ObjectResult(new TeamDto(team));
             }
             catch (AggregateNotFoundException)
             {
@@ -91,26 +99,32 @@ namespace WebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Creates a new team.
+        /// </summary>
         [HttpPost("{id}")]
-        public IActionResult Crear(Guid id, [FromBody] CrearEquipo model)
+        public IActionResult Create(Guid id, [FromBody] CreateTeam model)
         {
             if (model == null)
                 return BadRequest();
 
-            _bus.Send(new commands.CrearEquipo(id, model.Nombre));
+            _bus.Send(new commands.CreateTeam(id, model.Name));
 
-            return CreatedAtRoute("GetEquipo", new { controller = "EquipoMontaje", id = id }, model);
+            return CreatedAtRoute("GetTeam", new { controller = "Team", id = id }, model);
         }
 
-        [HttpPut("{id}/nombre")]
-        public IActionResult ActualizarNombre(Guid id, [FromBody] ActualizarNombreEquipo model)
+        /// <summary>
+        /// Updates the name of a team
+        /// </summary>
+        [HttpPut("{id}/name")]
+        public IActionResult UpdateName(Guid id, [FromBody] UpdateTeamName model)
         {
             if (model == null)
                 return BadRequest();
 
-            _bus.Send(new commands.ActualizarNombreEquipo(id, model.NuevoNombre, model.OriginalVersion));
+            _bus.Send(new commands.UpdateTeamName(id, model.NewName, model.OriginalVersion));
 
-            return CreatedAtRoute("GetEquipo", new { controller = "EquipoMontaje", id = id }, model);
+            return CreatedAtRoute("GetTeam", new { controller = "Team", id = id }, model);
         }
 
         #endregion

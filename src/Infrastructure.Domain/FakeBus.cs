@@ -10,9 +10,7 @@ namespace Infrastructure.Domain
 
         public void RegisterHandler<T>(Action<T> handler) where T : IMessage
         {
-            List<Action<IMessage>> handlers;
-
-            if (!_routes.TryGetValue(typeof(T), out handlers))
+            if (!_routes.TryGetValue(typeof(T), out var handlers))
             {
                 handlers = new List<Action<IMessage>>();
                 _routes.Add(typeof(T), handlers);
@@ -23,9 +21,7 @@ namespace Infrastructure.Domain
 
         public void Send<T>(T command) where T : ICommand
         {
-            List<Action<IMessage>> handlers;
-
-            if (_routes.TryGetValue(typeof(T), out handlers))
+            if (_routes.TryGetValue(typeof(T), out var handlers))
             {
                 if (handlers.Count != 1) throw new InvalidOperationException("cannot send to more than one handler");
                 handlers[0](command);
@@ -36,16 +32,13 @@ namespace Infrastructure.Domain
 
         public void Publish<T>(T @event) where T : Event
         {
-            List<Action<IMessage>> handlers;
-
-            if (!_routes.TryGetValue(@event.GetType(), out handlers)) return;
-
-            foreach (var handler in handlers)
-            {
-                //dispatch on thread pool for added awesomeness
-                var handler1 = handler;
-                System.Threading.ThreadPool.QueueUserWorkItem(x => handler1(@event));
-            }
+            if (_routes.TryGetValue(@event.GetType(), out var handlers))
+                foreach (var handler in handlers)
+                {
+                    //dispatch on thread pool for added awesomeness
+                    var handler1 = handler;
+                    System.Threading.ThreadPool.QueueUserWorkItem(x => handler1(@event));
+                }
         }
     }
 }

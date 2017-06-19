@@ -66,8 +66,9 @@ namespace WebApp
         }
 	
 		public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory,
-            BoundedContext.Montajes.Repositories.EquiposRepository repo,
-            ReadModel.Montajes.Views.EquiposView view)
+            BoundedContext.Teams.Repositories.TeamRepository repo,
+            ReadModel.Teams.Views.TeamsView view,
+            BoundedContext.Teams.CommandHandlers.TeamCommandHandler commandHandler)
 		{
 #if DEBUG
             loggerFactory.AddDebug();
@@ -81,7 +82,7 @@ namespace WebApp
             app.UseSwagger();   // Enable middleware to serve generated Swagger as a JSON endpoint
             app.UseSwaggerUi(); // Enable middleware to serve swagger-ui assets (HTML, JS, CSS etc.)
 
-            app.ConfigureModels(repo, view);
+            app.ConfigureModels(repo, view, commandHandler);
 		}
 
         string GetXmlCommentsFilePath()

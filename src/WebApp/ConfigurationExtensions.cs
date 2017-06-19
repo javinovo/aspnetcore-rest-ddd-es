@@ -1,12 +1,12 @@
-﻿using BoundedContext.Montajes.CommandHandlers;
-using BoundedContext.Montajes.Repositories;
+﻿using BoundedContext.Teams.CommandHandlers;
+using BoundedContext.Teams.Repositories;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ReadModel.Montajes.Views;
+using ReadModel.Teams.Views;
 using System.Linq;
 
 namespace WebApp
@@ -27,7 +27,7 @@ namespace WebApp
 
             services.AddSingleton<IEventStore>(serviceProvider =>
             {
-                var logger = serviceProvider.GetService<ILogger>();
+                var logger = serviceProvider.GetService<ILogger<Startup>>();
                 var eventPublisher = serviceProvider.GetService<IEventPublisher>();
 
                 var eventStoreOptions = serviceProvider.GetService<IOptions<EventStoreFacade.EventStoreOptions>>();
@@ -51,35 +51,37 @@ namespace WebApp
             });
 
             services.AddSingleton(serviceProvider =>
-                new EquiposRepository(serviceProvider.GetService<IEventStore>()));
+                new TeamRepository(serviceProvider.GetService<IEventStore>()));
 
             services.AddSingleton(serviceProvider => // Write model
-                new EquipoCommandHandler(
+                new TeamCommandHandler(
                     serviceProvider.GetService<IMessageBroker>(),
-                    serviceProvider.GetService<EquiposRepository>()));
+                    serviceProvider.GetService<TeamRepository>()));
 
             services.AddSingleton(serviceProvider => // Read model
-                new EquiposView(serviceProvider.GetService<IMessageBroker>()));
+                new TeamsView(serviceProvider.GetService<IMessageBroker>()));
         }
 
         /// <summary>
         /// Configure read and write models
         /// </summary>
-        public static void ConfigureModels(this IApplicationBuilder app, EquiposRepository repo, EquiposView equiposView)
+        public static void ConfigureModels(this IApplicationBuilder app, TeamRepository repo, TeamsView teamsView, TeamCommandHandler commandHandler)
         {
             // Read models (Queries) setup
 
             var snapshot = // Current data snapshot: we retrieve all the aggregates from the repository
                 repo.GetIds(0, int.MaxValue).ToArray()
                 .Select(id => repo.Find(id))
-                .Select(x => new ReadModel.Montajes.DTO.EquipoDto(x));
+                .Select(x => new ReadModel.Teams.DTO.TeamDto(x));
 
-            equiposView.LoadSnapshot(snapshot);
+            teamsView.LoadSnapshot(snapshot);
 
 
             // Write models (Commands) setup
 
-            // Nothing to do (handler registration is done in the EquipoCommandHandler constructor)
+            // Nothing to do (handler registration is done in the TeamCommandHandler constructor)
+            // Note that although not used, the dependency on TeamCommandHandler as a parameters to this method forces its instantiation
+            // (otherwise - unless used elsewhere - the DI system would never invoke the implementation factory delegate passed to AddSingleton)
         }
     }
 }
