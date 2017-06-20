@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace ReadModel.Teams.Views
 {
-    public class TeamsView : IHandle<TeamCreated>, IHandle<TeamNameUpdated>
+    public class TeamsView : IHandle<TeamCreated>, IHandle<TeamNameUpdated>, IHandle<TeamDissolved>
     {
         readonly Dictionary<Guid, TeamDto> _dtos = new Dictionary<Guid, TeamDto>();
 
@@ -14,6 +14,7 @@ namespace ReadModel.Teams.Views
         {
             messageBroker.RegisterHandler<TeamCreated>(Handle);
             messageBroker.RegisterHandler<TeamNameUpdated>(Handle);
+            messageBroker.RegisterHandler<TeamDissolved>(Handle);
         }
 
         public void LoadSnapshot(IEnumerable<TeamDto> snapshot)
@@ -32,11 +33,17 @@ namespace ReadModel.Teams.Views
         #region Event handlers
 
         public void Handle(TeamCreated message) =>
-            _dtos[message.SourceId] = new TeamDto(message.SourceId, message.Version, message.Name);
+            _dtos[message.SourceId] = new TeamDto(message.SourceId, message.Version, message.Name, message.IsActive);
 
         public void Handle(TeamNameUpdated message)
         {
             _dtos[message.SourceId].Name = message.NewName;
+            _dtos[message.SourceId].Version = message.Version;
+        }
+
+        public void Handle(TeamDissolved message)
+        {
+            _dtos[message.SourceId].IsActive = false;
             _dtos[message.SourceId].Version = message.Version;
         }
 

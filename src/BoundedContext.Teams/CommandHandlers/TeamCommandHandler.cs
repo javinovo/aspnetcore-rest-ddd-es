@@ -1,4 +1,5 @@
-﻿using BoundedContext.Teams.Commands;
+﻿using System;
+using BoundedContext.Teams.Commands;
 using Infrastructure.Domain;
 using Infrastructure.Domain.Interfaces;
 
@@ -7,7 +8,7 @@ namespace BoundedContext.Teams.CommandHandlers
     /// <summary>
     /// Application service in charge of processing the commands. Contains the infrastructure needed to execute the commands (ie. the repository)
     /// </summary>
-    public class TeamCommandHandler : IHandle<CreateTeam>, IHandle<UpdateTeamName>
+    public class TeamCommandHandler : IHandle<CreateTeam>, IHandle<UpdateTeamName>, IHandle<DissolveTeam>
     {
         readonly IRepository<Team, Events.TeamCreated> _repository;
 
@@ -17,6 +18,7 @@ namespace BoundedContext.Teams.CommandHandlers
 
             messageBroker.RegisterHandler<CreateTeam>(Handle);
             messageBroker.RegisterHandler<UpdateTeamName>(Handle);
+            messageBroker.RegisterHandler<DissolveTeam>(Handle);
         }
 
         public void Handle(CreateTeam message)
@@ -29,6 +31,13 @@ namespace BoundedContext.Teams.CommandHandlers
         {
             var team = _repository.Find(message.TeamId);
             team.UpdateName(message.NewName);
+            _repository.Save(team, message.OriginalVersion);
+        }
+
+        public void Handle(DissolveTeam message)
+        {
+            var team = _repository.Find(message.TeamId);
+            team.Dissolve();
             _repository.Save(team, message.OriginalVersion);
         }
     }

@@ -1,5 +1,7 @@
 ﻿using BoundedContext.Teams.Repositories;
 using Domain.Exceptions;
+using Halcyon.HAL;
+using Halcyon.Web.HAL;
 using Infrastructure.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -9,8 +11,6 @@ using System;
 using System.Collections.Generic;
 using WebApp.Models;
 using commands = BoundedContext.Teams.Commands;
-using Halcyon.HAL;
-using Halcyon.Web.HAL;
 
 /*
 curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team"
@@ -27,6 +27,11 @@ curl -X PUT -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d 
 curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9"
 
 curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9/0"
+
+curl -X DELETE -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{
+    OriginalVersion: 1
+}' "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9"
+
  */
 
 namespace WebApp.Controllers
@@ -64,7 +69,7 @@ namespace WebApp.Controllers
         /// Obtains a specific team from the read model. It should be the up to date version but it might not be.
         /// </summary>
         /// <returns>The team as currently stored in the read model or 404</returns>
-        [HttpGet("{id}", Name = "GetTeam")]
+        [HttpGet("{id:Guid}", Name = nameof(GetById))]
         public IActionResult GetById(Guid id)
         {
             if (id == Guid.Empty)
@@ -74,15 +79,20 @@ namespace WebApp.Controllers
             if (item == null)
                 return NotFound(id);
 
-            return this.HAL(item, new Link[] { new Link(Link.RelForSelf, "/api/{id}") });
-            //return new ObjectResult(item);
+            return this.HAL(item, new Link[]
+            {
+                new Link(Link.RelForSelf, "/api/Team/{Id}", replaceParameters: true),
+                new Link("version", $"{Request.Path.Value}/{{version}}", "Specific version of the team's history", replaceParameters: false),
+                new Link("updateName", "/api/Team/{Id}/name", method: "PUT"),
+                new Link("dissolve", "/api/Team/{Id}", method: "DELETE")
+            });
         }
 
         /// <summary>
         /// Obtains a team in a specific version by replaying all its events up to that version.
         /// </summary>
         /// <returns>The specified version of the team or 404</returns>
-        [HttpGet("{id}/{version}")]
+        [HttpGet("{id:Guid}/{version:int}")]
         public IActionResult GetByIdVersion(Guid id, int version)
         {
             if (id == Guid.Empty || version < 0)
@@ -91,7 +101,13 @@ namespace WebApp.Controllers
             try
             {
                 var team = _writeModelRepository.Find(id, version);
-                return new ObjectResult(new TeamDto(team));
+
+                return this.HAL(new TeamDto(team), new Link[]
+                {
+                    new Link(Link.RelForSelf, Request.Path.Value),
+                    new Link("last", "/api/Team/{Id}", title: "Up to date version", replaceParameters: true)
+                });
+
             }
             catch (AggregateNotFoundException)
             {
@@ -102,7 +118,7 @@ namespace WebApp.Controllers
         /// <summary>
         /// Creates a new team.
         /// </summary>
-        [HttpPost("{id}")]
+        [HttpPost("{id:Guid}")]
         public IActionResult Create(Guid id, [FromBody] CreateTeam model)
         {
             if (model == null)
@@ -110,13 +126,13 @@ namespace WebApp.Controllers
 
             _bus.Send(new commands.CreateTeam(id, model.Name));
 
-            return CreatedAtRoute("GetTeam", new { controller = "Team", id = id }, model);
+            return CreatedAtRoute(nameof(GetById), new { controller = nameof(Team), id = id }, model);
         }
 
         /// <summary>
         /// Updates the name of a team
         /// </summary>
-        [HttpPut("{id}/name")]
+        [HttpPut("{id:Guid}/name")]
         public IActionResult UpdateName(Guid id, [FromBody] UpdateTeamName model)
         {
             if (model == null)
@@ -124,7 +140,15 @@ namespace WebApp.Controllers
 
             _bus.Send(new commands.UpdateTeamName(id, model.NewName, model.OriginalVersion));
 
-            return CreatedAtRoute("GetTeam", new { controller = "Team", id = id }, model);
+            return CreatedAtRoute(nameof(GetById), new { controller = nameof(Team), id = id }, model);
+        }
+
+        [HttpDelete("{id:Guid}")]
+        public IActionResult Delete(Guid id, [FromBody] DissolveTeam model)
+        {
+            _bus.Send(new commands.DissolveTeam(id, model.OriginalVersion));
+
+            return Ok();
         }
 
         #endregion

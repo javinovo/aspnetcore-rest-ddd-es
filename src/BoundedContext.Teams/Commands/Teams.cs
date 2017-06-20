@@ -15,17 +15,32 @@ namespace BoundedContext.Teams.Commands
         }
     }
 
-    public class UpdateTeamName : ICommand
+    public abstract class TeamCommand : ICommand
     {
         public readonly Guid TeamId;
-        public readonly string NewName;
         public readonly int OriginalVersion;
 
-        public UpdateTeamName(Guid id, string name, int originalVersion)
+        public TeamCommand(Guid id, int originalVersion)
         {
             TeamId = id;
-            NewName = name;
             OriginalVersion = originalVersion;
+        }
+    }
+
+    public class UpdateTeamName : TeamCommand
+    {
+        public readonly string NewName;
+
+        public UpdateTeamName(Guid id, string name, int originalVersion) : base(id, originalVersion)
+        {
+            NewName = name;
+        }
+    }
+
+    public class DissolveTeam : TeamCommand
+    {
+        public DissolveTeam(Guid id, int originalVersion) : base(id, originalVersion)
+        {
         }
     }
 }

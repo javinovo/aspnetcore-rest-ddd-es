@@ -75,6 +75,14 @@ Examples (note that you can also easily try them out through the Swagger web int
   curl -X GET -H "Cache-Control: no-cache" "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9/0"
   ```
 
+6. Delete
+
+  ```  
+  curl -X DELETE -H "Content-Type: application/json" -H "Cache-Control: no-cache" -d '{
+	  OriginalVersion: 1
+  }' "http://localhost:5000/api/Team/63931ea8-3f83-487c-8f21-01577a5157f9"  
+  ```
+  
 Projects
 --------
 
